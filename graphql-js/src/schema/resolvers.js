@@ -11,6 +11,22 @@ function assertValidLink({ url }) {
   }
 }
 
+function buildFilters({ OR = [], description_contains, url_contains }) {
+  const filter = (description_contains || url_contains) ? {} : null;
+  if (description_contains) {
+    filter.description = { $regex: `.*${description_contains}.*` };
+  }
+  if (url_contains) {
+    filter.url = { $regex: `.*${url_contains}.*` };
+  }
+
+  let filters = filter ? [filter] : [];
+  for (let i = 0; i < OR.length; i++) {
+    filters = filters.concat(buildFilters(OR[i]));
+  }
+  return filters;
+}
+
 class ValidationError extends Error {
   constructor(message, field) {
     super(message);
@@ -29,8 +45,16 @@ function assertValidLink({ url }) {
 module.exports = {
   Query: {
 
-    allLinks: async (root, data, {mongo: {Links}}) => { // 1
-      return await Links.find({}).toArray(); // 2
+    allLinks: async (root, { filter, first, skip }, { mongo: { Links, Users } }) => {
+      let query = filter ? { $or: buildFilters(filter) } : {};
+      const cursor = Links.find(query)
+      if (first) {
+        cursor.limit(first);
+      }
+      if (skip) {
+        cursor.skip(skip);
+      }
+      return cursor.toArray();
     },
 
     allUsers: async (root, data, {mongo: {Users}}) => {
