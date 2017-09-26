@@ -8,12 +8,20 @@ const formatError = require('./formatError');
 const { execute, subscribe } = require('graphql');
 const { createServer } = require('http');
 const { SubscriptionServer } = require('subscriptions-transport-ws');
+const cors = require('cors');
 
+var corsOptions = {
+    origin: function(origin, callback){
+        var originIsWhitelisted = whitelist.indexOf(origin) !== -1;
+        callback(null, originIsWhitelisted);
+    },
+    credentials: true
+};
 
 // 1
 const connectMongo = require('./mongo-connector');
 
-const PORT = 3000;
+const PORT = 3003;
 
 // 2
 const start = async () => {
@@ -25,18 +33,18 @@ const start = async () => {
     return {
       context: {
         dataloaders: buildDataloaders(mongo),
-        mongo, 
+        mongo,
         user
       }, // This context object is passed to all resolvers.
       formatError,
       schema,
     };
   };
-  app.use('/graphql', bodyParser.json(), graphqlExpress(buildOptions));
+  app.use('/graphql', cors(), bodyParser.json(), graphqlExpress(buildOptions));
   app.use('/graphiql', graphiqlExpress({
     endpointURL: '/graphql',
     passHeader: `'Authorization': 'bearer token-julioreiddt@hotmail.com'`,
-    subscriptionsEndpoint: `ws://localhost:${PORT}/subscriptions`,
+    subscriptionsEndpoint: `ws://localhost:${PORT}/subscriptions`
   }));
 
   const server = createServer(app);
