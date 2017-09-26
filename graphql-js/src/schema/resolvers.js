@@ -65,9 +65,14 @@ module.exports = {
 
   Mutation: {
 
-    createLink: async (root, data, { mongo: { Links }, user }) => {
+    createLink: async (root, data, { mongo: { Links, Users }, user }) => {
       assertValidLink(data);
-      const newLink = Object.assign({ postedById: user && user._id }, data)
+      const userPosted = await Users.findOne({ _id: data.postedById })
+      const newLink = {
+        ...data,
+        createdAt: Date.now(),
+        postedBy: userPosted
+      }
       const response = await Links.insert(newLink);
 
       newLink.id = response.insertedIds[0]
@@ -99,11 +104,11 @@ module.exports = {
 
     createVote: async (root, data, { mongo: { Votes }, user }) => {
       const newVote = {
-        userId: user && user._id,
+        userId: data.userId,
         linkId: new ObjectID(data.linkId),
       };
       const response = await Votes.insert(newVote);
-      
+
       newVote.id = response.insertedIds[0]
       pubsub.publish('Vote', { Vote: { mutation: 'CREATED', node: { newVote } } });
 
@@ -138,14 +143,8 @@ module.exports = {
 
   Link: {
     id: root => root._id || root.id, // 5
-    postedBy: async ({postedById}, data, {mongo: {Users}}) => {
-        return await Users.findOne({_id: postedById});
-    },
     votes: async ({ _id }, data, { mongo: { Votes } }) => {
       return await Votes.find({ linkId: _id }).toArray();
-    },
-    postedBy: async ({ postedById }, data, { dataloaders: { userLoader } }) => {
-      return await userLoader.load(postedById);
     },
   },
 

@@ -9,6 +9,7 @@ const typeDefs = `
     description: String!
     postedBy: User
     votes: [Vote!]!
+    createdAt: Float!
   }
 
   type User {
@@ -32,7 +33,7 @@ const typeDefs = `
     token: String
     user: User
   }
-  
+
   type Vote {
     id: ID!
     user: User!
@@ -45,8 +46,8 @@ const typeDefs = `
   }
 
   type Mutation {
-    createLink(url: String!, description: String!): Link
-    createVote(linkId: ID!): Vote
+    createLink(url: String!, description: String!, postedById: ID!): Link
+    createVote(linkId: ID!, userId: ID!): Vote
     createUser(name: String!, authProvider: AuthProviderSignupData!): User
     signinUser(email: AUTH_PROVIDER_EMAIL): SigninPayload!
   }
